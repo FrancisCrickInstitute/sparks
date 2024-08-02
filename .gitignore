@@ -1,0 +1,16 @@
+results/
+*.out
+*.sh
+*.pyc
+*.h5
+*.pt
+*.mat
+*.hdf5
+exportToHTML/
+*.html
+.idea/
+*.pth
+.DS_Store
+.ipynb_checkpoints/
+__pycache__/
+*.egg-info
