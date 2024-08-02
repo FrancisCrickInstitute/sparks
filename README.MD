@@ -8,8 +8,8 @@
 [📚Documentation](https://sparks.crick.ac.uk/docs#) |
 [💡DEMOS](https://sparks.crick.ac.uk/demos#) |
 [🛠️ Installation](https://sparks.crick.ac.uk/docs#) |
-[🌎 Home Page](https://https://sparks.crick.ac.uk/) |
-[🪲 Reporting Issues](https://github.com/FrancisCrickInstitute/SPARKS/issues)
+[🌎 Home Page](https://sparks.crick.ac.uk/) |
+[🪲 Reporting Issues](https://github.com/FrancisCrickInstitute/sparks/issues)
 
 
 
