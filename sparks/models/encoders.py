@@ -106,6 +106,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                  neurons_per_sess: Optional[Union[Any, List[Any]]] = None,
                  w_pre: float = 1.,
                  w_post: float = 0.5,
+                 data_type: str = 'ephys',
                  device: torch.device = torch.device('cpu')):
         """
         Initialize a Hebbian Transformer Encoder.
@@ -134,6 +135,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                                                 None will make the block pay attention to all neurons, defaults to None.
             w_pre (float, optional): initial value for the weights of the presynaptic neurons, defaults to 1.0.
             w_post (float, optional): initial value for the weights of the postsynaptic neurons, defaults to 0.5.
+            data_type (str, optional): 'ephys' or 'ca'.
             device (torch.device, optional): The device to use for computation. Defaults to CPU.
 
         Returns:
@@ -171,7 +173,8 @@ class HebbianTransformerEncoder(torch.nn.Module):
                                                                        dt=dt,
                                                                        neurons=neurons,
                                                                        w_pre=w_pre,
-                                                                       w_post=w_post)
+                                                                       w_post=w_post,
+                                                                       data_type=data_type)
                                                for (n_neurons, tau_s, dt, neurons) in zip(n_neurons_per_sess,
                                                                                           tau_s_per_sess,
                                                                                           dt_per_sess,
