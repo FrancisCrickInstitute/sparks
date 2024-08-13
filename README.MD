@@ -5,10 +5,10 @@
 <img src="logo.png" width="95%">
 </p>
 
-[📚Documentation](https://sparks.crick.ac.uk/docs#) |
-[💡DEMOS](https://sparks.crick.ac.uk/demos#) |
-[🛠️ Installation](https://sparks.crick.ac.uk/docs#) |
-[🌎 Home Page](https://sparks.crick.ac.uk/) |
+[📚Documentation](https://franciscrickinstitute.github.io/sparks-ai//docs#) |
+[💡DEMOS](https://franciscrickinstitute.github.io/sparks-ai//demos#) |
+[🛠️ Installation](https://franciscrickinstitute.github.io/sparks-ai//docs#) |
+[🌎 Home Page](https://franciscrickinstitute.github.io/sparks-ai/) |
 [🪲 Reporting Issues](https://github.com/FrancisCrickInstitute/sparks/issues)
 
 
@@ -17,7 +17,7 @@
 
 # SPARKS 🎆
 
-This is the official repository for **SPARKS**: a **S**equential **P**redictive **A**utoencoder for the **A**nalysis of **S**pi**K**ing **S**ignals. 
+This is the official repository for **SPARKS**: a **S**equential **P**redictive **A**utoencoder for the **A**nalysis of spi**K**ing **S**ignals. 
 
 
 SPARKS includes a novel self-attention mechanism using Hebbian learning to generate reliable latent representations from single spike timings. SPARKS trains a variational autoencoder with a novel criterion inspired by predictive coding for temporal coherence.

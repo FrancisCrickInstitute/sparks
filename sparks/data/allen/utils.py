@@ -69,7 +69,7 @@ def make_spike_histogram(trial_idx, units_ids, spike_times, time_bin_edges):
     for unit_id in units_ids:
         unit_spikes = spike_times[unit_id][trial_idx]
         if len(unit_spikes) > 0:
-            unit_histogram = np.histogram(unit_spikes, bins=time_bin_edges)[0].astype(np.float32)
+            unit_histogram = (np.histogram(unit_spikes, bins=time_bin_edges)[0] > 0).astype(np.float32)
         else:
             unit_histogram = np.zeros_like(time_bin_edges[:-1]).astype(np.float32)
 

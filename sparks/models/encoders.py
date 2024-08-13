@@ -245,6 +245,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                          layer_id: int,
                          w_pre: float = 1.,
                          w_post: float = 0.5,
+                         data_type: str = 'ephys',
                          neurons: Optional[Any] = None) -> None:
         """
         Add a neural block to the HebbianTransformerEncoder.
@@ -259,6 +260,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
             layer_id (int): The id for the new layer.
             w_pre (float, optional): The initial value of weights for pre-synaptic neurons. Defaults to 1.0.
             w_post (float, optional): The initial value of weights for post-synaptic neurons. Defaults to 0.5.
+            data_type (str, optional): 'ephys' or 'ca'.
             neurons (Any, optional): The specific neurons this block should pay attention to.
                 If None, the block will pay attention to all neurons. Defaults to None.
 
@@ -276,7 +278,8 @@ class HebbianTransformerEncoder(torch.nn.Module):
                                                                 dt=dt,
                                                                 neurons=neurons,
                                                                 w_pre=w_pre,
-                                                                w_post=w_post).to(self.device))
+                                                                w_post=w_post,
+                                                                data_type=data_type).to(self.device))
         self.id_per_sess = np.concatenate((self.id_per_sess, np.array([layer_id])))
 
         if self.output_type == 'flatten':
