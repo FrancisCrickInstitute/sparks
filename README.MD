@@ -5,9 +5,9 @@
 <img src="logo.png" width="95%">
 </p>
 
-[📚Documentation](https://franciscrickinstitute.github.io/sparks-ai//docs#) |
+[📚Documentation](https://franciscrickinstitute.github.io/sparks-ai/docs#) |
 [💡DEMOS](https://franciscrickinstitute.github.io/sparks-ai//demos#) |
-[🛠️ Installation](https://franciscrickinstitute.github.io/sparks-ai//docs#) |
+[🛠️ Installation](https://franciscrickinstitute.github.io/sparks-ai/docs#) |
 [🌎 Home Page](https://franciscrickinstitute.github.io/sparks-ai/) |
 [🪲 Reporting Issues](https://github.com/FrancisCrickInstitute/sparks/issues)
 
@@ -31,7 +31,7 @@ Make sure to 👀 watch or ⭐️ star this repository to keep updated!
 
 - 📄 **Preprint**:
 
-**Coming soon!**
+Available now on [BiorXiv](https://www.biorxiv.org/content/10.1101/2024.08.13.607787v1)!
 
 # License
 - SPARKS is an open source software under a GLPv3 license.
