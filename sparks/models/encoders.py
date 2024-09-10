@@ -18,7 +18,10 @@ class HebbianTransformerBlock(torch.nn.Module):
                  neurons=None,
                  w_pre: float = 1.,
                  w_post: float = 0.5,
-                 data_type: str = 'ephys') -> None:
+                 data_type: str = 'ephys',
+                 sliding_window=False,
+                 block_size=3, 
+                 window_size=10) -> None:
 
         """
         Initialize a Hebbian Transformer Block.
@@ -51,7 +54,10 @@ class HebbianTransformerBlock(torch.nn.Module):
                                                                 neurons=neurons,
                                                                 w_pre=w_pre,
                                                                 w_post=w_post,
-                                                                data_type=data_type)
+                                                                data_type=data_type,
+                                                                sliding=sliding_window,
+                                                                block_size=block_size,
+                                                                w=window_size)
         self.o_proj = torch.nn.Linear(embed_dim, embed_dim)
         self.ff = FeedForward(embed_dim)
         self.embed_dim = embed_dim
@@ -107,7 +113,10 @@ class HebbianTransformerEncoder(torch.nn.Module):
                  w_pre: float = 1.,
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
-                 device: torch.device = torch.device('cpu')):
+                 device: torch.device = torch.device('cpu'),
+                 sliding_window: bool = False,
+                 block_size: int = 3,
+                 window_size: int = 10):
         """
         Initialize a Hebbian Transformer Encoder.
 
@@ -174,7 +183,10 @@ class HebbianTransformerEncoder(torch.nn.Module):
                                                                        neurons=neurons,
                                                                        w_pre=w_pre,
                                                                        w_post=w_post,
-                                                                       data_type=data_type)
+                                                                       data_type=data_type,
+                                                                       sliding_window=sliding_window, 
+                                                                       block_size=block_size, 
+                                                                       window_size=window_size)
                                                for (n_neurons, tau_s, dt, neurons) in zip(n_neurons_per_sess,
                                                                                           tau_s_per_sess,
                                                                                           dt_per_sess,
