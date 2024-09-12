@@ -58,8 +58,9 @@ class HebbianAttentionLayer(torch.nn.Module):
         self.embed_dim = embed_dim
         self.attention = None
 
-        if data_type not in ['ephys', 'ca']:
-            raise NotImplementedError
+        if data_type not in ['ephys', 'calcium']:
+            raise NotImplementedError('data_type must be one of ["ephys", "calcium"]')
+        
         self.data_type = data_type
         if data_type == 'ephys':
             self.dt = dt
