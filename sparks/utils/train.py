@@ -111,7 +111,8 @@ def train_on_batch(encoder: torch.nn.Module,
     burnin = kwargs.get('burnin', 0)
 
     encoder_outputs, loss, T = train_init(encoder, decoder, inputs, latent_dim, tau_p, burnin=burnin, device=device)
-    inputs, targets = skip(encoder, inputs, targets, device, num_steps=burnin, sess_id=sess_id)
+    inputs, targets, encoder_outputs = skip(encoder, encoder_outputs, inputs,
+                                            targets, device, num_steps=burnin, sess_id=sess_id)
 
     for t in range(T - tau_f + 1):
         # Forward pass of the autoencoder

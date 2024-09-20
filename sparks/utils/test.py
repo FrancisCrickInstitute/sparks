@@ -8,13 +8,12 @@ from sparks.utils.misc import identity
 from sparks.utils.vae import skip, ae_forward
 
 
-def test_init(
-        encoder: torch.nn.Module,
-        inputs: torch.tensor,
-        latent_dim: int,
-        tau_p: int,
-        device: torch.device,
-        burnin: int = 0):
+def test_init(encoder: torch.nn.Module,
+              inputs: torch.tensor,
+              latent_dim: int,
+              tau_p: int,
+              device: torch.device,
+              burnin: int = 0):
     """
     Initializes testing for a batch. Computes the number of time-steps, resets the state
     of the encoder, and initializes the encoder outputs.
@@ -144,7 +143,8 @@ def test_on_batch(encoder: torch.nn.Module,
                                                                 tau_p=tau_p,
                                                                 device=device,
                                                                 burnin=burnin)
-    inputs, targets = skip(encoder, inputs, targets, device, num_steps=burnin, sess_id=sess_id)
+    inputs, targets, encoder_outputs = skip(encoder, encoder_outputs_batch, inputs,
+                                            targets, device, num_steps=burnin, sess_id=sess_id)
 
     for t in range(T):
         encoder_outputs_batch, decoder_outputs, _, _ = ae_forward(encoder=encoder,

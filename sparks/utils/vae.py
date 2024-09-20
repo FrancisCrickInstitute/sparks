@@ -38,6 +38,7 @@ def ae_forward(encoder, decoder, inputs, encoder_outputs, tau_p, device, sess_id
 
 
 def skip(encoder: torch.nn.Module,
+         encoder_outputs: torch.tensor,
          inputs: torch.tensor,
          targets: Optional[torch.tensor] = None,
          device: Union[str, torch.device] = 'cpu',
@@ -49,6 +50,7 @@ def skip(encoder: torch.nn.Module,
 
     Args:
         encoder (torch.nn.Module): The encoder module of the model.
+        encoder_outputs: torch.tensor: previous tau_p outputs of the encoder.
         inputs (torch.tensor): The input data.
         targets (torch.tensor, optional): The target data corresponding to `inputs`.
         device (str or torch.device, optional): The device where the tensor will be allocated. Default is 'cpu'.
@@ -62,10 +64,13 @@ def skip(encoder: torch.nn.Module,
     """
 
     for t in range(num_steps):
-        encoder(inputs[..., t].view(inputs.shape[0], -1).to(device).float(), sess_id)
+        mu, logvar = encoder(inputs[..., t].view(inputs.shape[0], -1).float().to(device), sess_id)
+        enc_outputs = encoder.reparametrize(mu, logvar)
+
+        encoder_outputs = torch.cat((encoder_outputs, enc_outputs.unsqueeze(2)), dim=2)
 
     inputs = inputs[..., num_steps:]
     if targets is not None:
         targets = targets[..., num_steps:]
 
-    return inputs, targets
+    return inputs, targets, encoder_outputs
