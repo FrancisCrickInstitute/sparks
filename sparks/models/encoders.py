@@ -169,7 +169,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
             if not hasattr(neurons_per_sess, '__iter__'):
                 neurons_per_sess = [neurons_per_sess] * len(n_neurons_per_sess)
         else:
-            neurons_per_sess = [None] * len(n_neurons_per_sess)
+            neurons_per_sess = [np.arange(n_neurons_sess) for n_neurons_sess in n_neurons_per_sess]
 
         if id_per_sess is None:
             id_per_sess = np.arange(len(n_neurons_per_sess))
@@ -180,6 +180,12 @@ class HebbianTransformerEncoder(torch.nn.Module):
         self.embed_dim = embed_dim
         self.n_heads = n_heads
         self.device = device
+
+        if sliding:
+            for i in range(len(neurons_per_sess)):
+                if (len(neurons_per_sess[i]) % block_size) != 0:
+                    neurons_per_sess[i] = neurons_per_sess[i][:-(len(neurons_per_sess[i]) % block_size)]
+                    n_neurons_per_sess[i] = len(neurons_per_sess[i])
 
         self.hebbian_attn_blocks = ModuleList([HebbianTransformerBlock(n_neurons,
                                                                        embed_dim,
@@ -295,6 +301,14 @@ class HebbianTransformerEncoder(torch.nn.Module):
         if np.isin(layer_id, self.id_per_sess):
             raise ValueError('id already allocated to another layer')
 
+        if neurons is None:
+            neurons = np.arange(n_neurons)
+
+        if sliding:
+            if (len(neurons) % block_size) != 0:
+                neurons = neurons[:-(len(neurons) % block_size)]
+                n_neurons = len(neurons)
+
         self.hebbian_attn_blocks.append(HebbianTransformerBlock(n_neurons,
                                                                 self.embed_dim,
                                                                 n_heads=self.n_heads,
@@ -307,6 +321,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                                                                 sliding=sliding,
                                                                 window_size=window_size,
                                                                 block_size=block_size).to(self.device))
+
         self.id_per_sess = np.concatenate((self.id_per_sess, np.array([layer_id])))
 
         if self.output_type == 'flatten':
@@ -335,6 +350,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
         Returns:
             None
         """
+
         if self.output_type == 'mean':
             self.conventional_blocks.append(torch.nn.Linear(self.embed_dim, 1))
             self.conventional_blocks.append(torch.nn.Flatten())

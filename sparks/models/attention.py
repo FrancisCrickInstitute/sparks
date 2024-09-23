@@ -62,9 +62,6 @@ class HebbianAttentionLayer(torch.nn.Module):
         else:
             self.neurons = neurons
 
-        if (len(self.neurons) % block_size) != 0:
-            self.neurons = self.neurons[:-(len(self.neurons) % block_size)]
-
         self.embed_dim = embed_dim
         self.attention = None
         self.sliding = sliding
