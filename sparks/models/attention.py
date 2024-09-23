@@ -171,13 +171,13 @@ class HebbianAttentionLayer(torch.nn.Module):
         """
 
         if self.sliding:
-            self.latent_pre_weight = Parameter(torch.zeros(1, self.n_total_neurons // self.w, self.block_size, 1))
-            self.latent_post_weight = Parameter(torch.zeros(1, self.n_total_neurons//self.w, 1, self.w*self.block_size))
+            self.latent_pre_weight = Parameter(torch.zeros(1, self.n_total_neurons // self.block_size, self.block_size, 1))
+            self.latent_post_weight = Parameter(torch.zeros(1, self.n_total_neurons// self.block_size, 1, self.window_size * self.block_size))
 
-            self.pre_tau_s = Parameter(torch.ones(1, self.n_total_neurons // self.w,
+            self.pre_tau_s = Parameter(torch.ones(1, self.n_total_neurons // self.block_size,
                                                   self.block_size, 1) * np.log(self.tau_s))
-            self.post_tau_s = Parameter(torch.ones(1, self.n_total_neurons//self.w, 1,
-                                                   self.w*self.block_size) * np.log(self.tau_s))
+            self.post_tau_s = Parameter(torch.ones(1, self.n_total_neurons//self.block_size, 1,
+                                                   self.window_size * self.block_size) * np.log(self.tau_s))
 
         else:
             self.latent_pre_weight = Parameter(torch.zeros(1, len(self.neurons), self.n_total_neurons))
