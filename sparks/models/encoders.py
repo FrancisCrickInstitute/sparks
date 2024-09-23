@@ -20,8 +20,8 @@ class HebbianTransformerBlock(torch.nn.Module):
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
                  sliding: bool = False,
-                 window_size: int = 10,
-                 block_size: int = 3) -> None:
+                 window_size: int = 1,
+                 block_size: int = 1) -> None:
 
         """
         Initialize a Hebbian Transformer Block.
@@ -117,7 +117,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
                  sliding: bool = False,
-                 window_size: int = 10,
+                 window_size: int = 1,
                  block_size: int = 1,
                  device: torch.device = torch.device('cpu')):
         """
@@ -265,7 +265,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                          w_post: float = 0.5,
                          data_type: str = 'ephys',
                          sliding: bool = False,
-                         window_size: int = 10,
+                         window_size: int = 1,
                          block_size: int = 1,
                          neurons: Optional[Any] = None) -> None:
         """

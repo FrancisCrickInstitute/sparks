@@ -16,8 +16,8 @@ class HebbianAttentionLayer(torch.nn.Module):
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
                  sliding: bool = False,
-                 window_size: int = 10,
-                 block_size: int = 3):
+                 window_size: int = 1,
+                 block_size: int = 1):
 
         """
         HebbianAttentionLayer
