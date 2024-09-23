@@ -20,7 +20,7 @@ class HebbianTransformerBlock(torch.nn.Module):
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
                  sliding: bool = False,
-                 window: int = 10,
+                 window_size: int = 10,
                  block_size: int = 3) -> None:
 
         """
@@ -41,7 +41,7 @@ class HebbianTransformerBlock(torch.nn.Module):
             w_post (float, optional): Post-synaptic weight. Defaults to 0.5.
             data_type (str, optional): Type of data being handled. Defaults to 'ephys'.
             sliding (bool, optional): whether to use the sliding window algorithm, default is False
-            window (int, optional): window size for the sliding window, default is 10
+            window_size (int, optional): window size for the sliding window, default is 10
             block_size (int, optional): block size for the sliding window, default is 3
 
         Returns:
@@ -59,7 +59,7 @@ class HebbianTransformerBlock(torch.nn.Module):
                                                                 w_post=w_post,
                                                                 data_type=data_type,
                                                                 sliding=sliding,
-                                                                window=window,
+                                                                window_size=window_size,
                                                                 block_size=block_size)
         self.o_proj = torch.nn.Linear(embed_dim, embed_dim)
         self.ff = FeedForward(embed_dim)
@@ -117,8 +117,8 @@ class HebbianTransformerEncoder(torch.nn.Module):
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
                  sliding: bool = False,
-                 window: int = 10,
-                 block_size: int = 3,
+                 window_size: int = 10,
+                 block_size: int = 1,
                  device: torch.device = torch.device('cpu')):
         """
         Initialize a Hebbian Transformer Encoder.
@@ -149,7 +149,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
             w_post (float, optional): initial value for the weights of the postsynaptic neurons, defaults to 0.5.
             data_type (str, optional): 'ephys' or 'ca'.
             sliding (bool, optional): whether to use the sliding window algorithm, default is False
-            window (int, optional): window size for the sliding window, default is 10
+            window_size (int, optional): window size for the sliding window, default is 10
             block_size (int, optional): block size for the sliding window, default is 3
             device (torch.device, optional): The device to use for computation. Defaults to CPU.
 
@@ -190,7 +190,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                                                                        w_pre=w_pre,
                                                                        w_post=w_post,
                                                                        sliding=sliding,
-                                                                       window=window,
+                                                                       window_size=window_size,
                                                                        block_size=block_size,
                                                                        data_type=data_type)
                                                for (n_neurons, tau_s, dt, neurons) in zip(n_neurons_per_sess,
@@ -265,8 +265,8 @@ class HebbianTransformerEncoder(torch.nn.Module):
                          w_post: float = 0.5,
                          data_type: str = 'ephys',
                          sliding: bool = False,
-                         window: int = 10,
-                         block_size: int = 3,
+                         window_size: int = 10,
+                         block_size: int = 1,
                          neurons: Optional[Any] = None) -> None:
         """
         Add a neural block to the HebbianTransformerEncoder.
@@ -285,7 +285,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
             neurons (Any, optional): The specific neurons this block should pay attention to.
                 If None, the block will pay attention to all neurons. Defaults to None.
             sliding (bool, optional): whether to use the sliding window algorithm, default is False
-            window (int, optional): window size for the sliding window, default is 10
+            window_size (int, optional): window size for the sliding window, default is 10
             block_size (int, optional): block size for the sliding window, default is 3
 
         Returns:
@@ -305,7 +305,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
                                                                 w_post=w_post,
                                                                 data_type=data_type,
                                                                 sliding=sliding,
-                                                                window=window,
+                                                                window_size=window_size,
                                                                 block_size=block_size).to(self.device))
         self.id_per_sess = np.concatenate((self.id_per_sess, np.array([layer_id])))
 

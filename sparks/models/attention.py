@@ -16,7 +16,7 @@ class HebbianAttentionLayer(torch.nn.Module):
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
                  sliding: bool = False,
-                 window: int = 10,
+                 window_size: int = 10,
                  block_size: int = 3):
 
         """
@@ -33,7 +33,7 @@ class HebbianAttentionLayer(torch.nn.Module):
             w_post (float, optional): Initial value for the post synaptic weights. Default is 0.5.
             data_type (str, optional): Type of data, can be 'ephys' or 'ca'. Default is 'ephys'.
             sliding (bool, optional): whether to use the sliding window algorithm, default is False
-            window (int, optional): window size for the sliding window, default is 10
+            window_size (int, optional): window size for the sliding window, default is 10
             block_size (int, optional): block size for the sliding window, default is 3
 
         Attributes:
@@ -65,7 +65,7 @@ class HebbianAttentionLayer(torch.nn.Module):
         self.embed_dim = embed_dim
         self.attention = None
         self.sliding = sliding
-        self.window = window
+        self.window_size = window_size
         self.block_size = block_size
 
         if data_type not in ['ephys', 'calcium']:
@@ -86,7 +86,7 @@ class HebbianAttentionLayer(torch.nn.Module):
             self.init_latent_weights(w_pre, w_post)
 
         if self.sliding:
-            self.v_proj = torch.nn.Linear(self.w*self.block_size, self.embed_dim)
+            self.v_proj = torch.nn.Linear(self.window_size * self.block_size, self.embed_dim)
         else:
             self.v_proj = torch.nn.Linear(self.n_total_neurons, self.embed_dim)
 
@@ -106,53 +106,23 @@ class HebbianAttentionLayer(torch.nn.Module):
             The size of the output tensor is [batch_size, len(n_neurons), embed_dim].
         """
 
+        if self.sliding:
+            pre_spikes = spikes.view(spikes.shape[0], -1, self.block_size, 1)  # [B, N/b, b, 1]
+            post_spikes = self.roll(spikes.view(spikes.shape[0], -1, self.block_size),
+                                    spikes.shape[1] // self.block_size).unsqueeze(2)  # [B, N/b, 1, b*w]
+        else:
+            pre_spikes = spikes.unsqueeze(1)  # [B, N, 1]
+            post_spikes = spikes[:, self.neurons].unsqueeze(2)  # [B, 1, N]
+
         if self.data_type == 'ephys':
-            pre_spikes = spikes.unsqueeze(1)
-            post_spikes = spikes[:, self.neurons].unsqueeze(2)
-
-            if self.sliding:
-                pre_spikes = pre_spikes.view(pre_spikes.shape[0], pre_spikes.shape[2] // self.w, self.w, 1)
-                post_spikes = post_spikes.view(post_spikes.shape[0], post_spikes.shape[1] // self.w, 1, self.w)
-
-                self.pre_trace_update(pre_spikes)
-                self.post_trace_update(post_spikes)
-
-                pre_spikes = self.roll(pre_spikes, self.block_size, dim_to_concatenate=-2)
-                post_spikes = self.roll(post_spikes, self.block_size, dim_to_concatenate=-1)
-
-                pre = torch.mul(self.pre_trace, post_spikes != 0)
-                post = torch.mul(self.post_trace, pre_spikes != 0)
-
-                pre = pre.view(pre.shape[0], pre.shape[1] * pre.shape[2], pre.shape[3])
-                post = post.view(post.shape[0], post.shape[1] * post.shape[3], post.shape[2])
-
-                self.attention = self.attention + pre - post
-            else:
-                self.pre_trace_update(pre_spikes)
-                self.post_trace_update(post_spikes)
-
-                self.attention = (self.attention
-                                  + torch.mul(self.pre_trace, post_spikes != 0)
-                                  - torch.mul(self.post_trace, pre_spikes != 0))
+            self.pre_trace_update(pre_spikes)
+            self.post_trace_update(post_spikes)
+            self.attention = (self.attention
+                              + torch.mul(self.pre_trace, post_spikes != 0)
+                              - torch.mul(self.post_trace, pre_spikes != 0))
 
         elif self.data_type == 'calcium':
-            if self.sliding:
-                pre_spikes = spikes.unsqueeze(1)
-                post_spikes = spikes[:, self.neurons].unsqueeze(2)
-
-                pre_spikes = pre_spikes.view(pre_spikes.shape[0], pre_spikes.shape[2] // self.w, self.w, 1)
-                post_spikes = post_spikes.view(post_spikes.shape[0], post_spikes.shape[1] // self.w, 1, self.w)
-
-                pre_spikes = self.roll(pre_spikes, self.block_size, dim_to_concatenate=-2)
-
-                attn = pre_spikes - post_spikes
-
-                attn = attn.reshape(attn.shape[0], attn.shape[1] * attn.shape[2], attn.shape[3])
-                self.attention = self.attention + attn
-            else:
-                pre_spikes = spikes.unsqueeze(1)
-                post_spikes = spikes[:, self.neurons].unsqueeze(2)
-                self.attention = self.attention + pre_spikes - post_spikes
+            self.attention = self.attention + pre_spikes - post_spikes
 
         return self.v_proj(self.attention) / np.sqrt(self.n_total_neurons + self.embed_dim)
 
@@ -199,30 +169,32 @@ class HebbianAttentionLayer(torch.nn.Module):
         Returns:
             None
         """
-        self.latent_pre_weight = Parameter(torch.zeros(1, len(self.neurons), self.n_total_neurons))
-        self.latent_post_weight = Parameter(torch.zeros(1, len(self.neurons), self.n_total_neurons))
+
+        if self.sliding:
+            self.latent_pre_weight = Parameter(torch.zeros(1, self.n_total_neurons // self.w, self.block_size, 1))
+            self.latent_post_weight = Parameter(torch.zeros(1, self.n_total_neurons//self.w, 1, self.w*self.block_size))
+
+            self.pre_tau_s = Parameter(torch.ones(1, self.n_total_neurons // self.w,
+                                                  self.block_size, 1) * np.log(self.tau_s))
+            self.post_tau_s = Parameter(torch.ones(1, self.n_total_neurons//self.w, 1,
+                                                   self.w*self.block_size) * np.log(self.tau_s))
+
+        else:
+            self.latent_pre_weight = Parameter(torch.zeros(1, len(self.neurons), self.n_total_neurons))
+            self.latent_post_weight = Parameter(torch.zeros(1, len(self.neurons), self.n_total_neurons))
+
+            self.pre_tau_s = Parameter(torch.ones(1, len(self.neurons), self.n_total_neurons) * np.log(self.tau_s))
+            self.post_tau_s = Parameter(torch.ones(1, len(self.neurons), self.n_total_neurons) * np.log(self.tau_s))
+
         torch.nn.init.normal_(self.latent_pre_weight, mean=np.log(w_pre),
                               std=1 / np.sqrt(len(self.neurons) + self.n_total_neurons))
         torch.nn.init.normal_(self.latent_post_weight, mean=np.log(w_post),
                               std=1 / np.sqrt(len(self.neurons) + self.n_total_neurons))
 
-        self.pre_tau_s = Parameter(torch.ones(1, len(self.neurons), self.n_total_neurons) * np.log(self.tau_s))
-        self.post_tau_s = Parameter(torch.ones(1, len(self.neurons), self.n_total_neurons) * np.log(self.tau_s))
-
-    def roll(self, x, block_size, dim_to_concatenate):
-        list_of_blocks = []
-        if block_size > 1:
-            for i in range(0, block_size):
-                if i != 0:
-                    new = torch.cat([x[:,-i:,:,:], x[:,:-i,:,:]], dim=-3)
-                    list_of_blocks.append(new)
-
-            list_of_blocks.insert(((block_size-1)//2), x)
-            blocks = torch.cat(list_of_blocks, dim=dim_to_concatenate)
-        else:
-            blocks = x
-
-        return blocks
+    def roll(self, x, num_blocks):
+        w = (self.window_size - 1) // 2
+        return torch.cat([x[:, np.sort(np.arange(i - w, i + w + 1) % num_blocks)].flatten(1).unsqueeze(1)
+                          for i in range(num_blocks)], dim=1)
 
     def detach_(self):
         """
@@ -264,7 +236,7 @@ class MultiHeadedHebbianAttentionLayer(torch.nn.Module):
                  w_post: float = 0.5,
                  data_type: str = 'ephys',
                  sliding: bool = False,
-                 window: int = 10,
+                 window_size: int = 10,
                  block_size: int = 3):
         """
         Initializes the MultiHeadedHebbianAttentionLayer class with given parameters.
@@ -284,7 +256,7 @@ class MultiHeadedHebbianAttentionLayer(torch.nn.Module):
             w_post (float, optional): The postsynaptic weight. Default is 0.5.
             data_type (str, optional): The type of data. Default is 'ephys'.
             sliding (bool, optional): whether to use the sliding window algorithm, default is False
-            window (int, optional): window size for the sliding window, default is 10
+            window_size (int, optional): window size for the sliding window, default is 10
             block_size (int, optional): block size for the sliding window, default is 3
 
         Returns:
@@ -315,7 +287,7 @@ class MultiHeadedHebbianAttentionLayer(torch.nn.Module):
                                                                 w_post=w_post,
                                                                 data_type=data_type,
                                                                 sliding=sliding,
-                                                                window=window,
+                                                                window_size=window_size,
                                                                 block_size=block_size)
                                           for i in range(n_heads)])
 
