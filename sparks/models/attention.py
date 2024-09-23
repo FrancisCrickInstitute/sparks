@@ -62,6 +62,9 @@ class HebbianAttentionLayer(torch.nn.Module):
         else:
             self.neurons = neurons
 
+        if (len(self.neurons) % block_size) != 0:
+            self.neurons = self.neurons[:-(len(self.neurons) % block_size)]
+
         self.embed_dim = embed_dim
         self.attention = None
         self.sliding = sliding
@@ -107,9 +110,9 @@ class HebbianAttentionLayer(torch.nn.Module):
         """
 
         if self.sliding:
-            pre_spikes = spikes.view(spikes.shape[0], -1, self.block_size, 1)  # [B, N/b, b, 1]
-            post_spikes = self.roll(spikes.view(spikes.shape[0], -1, self.block_size),
-                                    spikes.shape[1] // self.block_size).unsqueeze(2)  # [B, N/b, 1, b*w]
+            pre_spikes = spikes[:, self.neurons].view(spikes.shape[0], -1, self.block_size, 1)  # [B, N/b, b, 1]
+            post_spikes = self.roll(spikes[:, self.neurons].view(spikes.shape[0], -1, self.block_size),
+                                    len(self.neurons) // self.block_size).unsqueeze(2)  # [B, N/b, 1, b*w]
         else:
             pre_spikes = spikes.unsqueeze(1)  # [B, N, 1]
             post_spikes = spikes[:, self.neurons].unsqueeze(2)  # [B, 1, N]
