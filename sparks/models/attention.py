@@ -118,11 +118,13 @@ class HebbianAttentionLayer(torch.nn.Module):
             self.pre_trace_update(pre_spikes)
             self.post_trace_update(post_spikes)
             self.attention = (self.attention
-                              + torch.mul(self.pre_trace, post_spikes != 0)
-                              - torch.mul(self.post_trace, pre_spikes != 0))
+                              + (torch.mul(self.pre_trace, post_spikes != 0) 
+                                 - torch.mul(self.post_trace, pre_spikes != 0)).view(spikes.shape[0], 
+                                                                                     len(self.neurons), -1))
 
         elif self.data_type == 'calcium':
-            self.attention = self.attention + pre_spikes - post_spikes
+            self.attention = self.attention + (pre_spikes - post_spikes).view(spikes.shape[0], len(self.neurons), -1)
+
 
         return self.v_proj(self.attention) / np.sqrt(self.n_total_neurons + self.embed_dim)
 
