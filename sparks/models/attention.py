@@ -194,9 +194,12 @@ class HebbianAttentionLayer(torch.nn.Module):
                               std=1 / np.sqrt(len(self.neurons) + self.n_total_neurons))
 
     def roll(self, x, num_blocks):
-        w = (self.window_size - 1) // 2
-        return torch.cat([x[:, np.sort(np.arange(i - w, i + w + 1) % num_blocks)].flatten(1).unsqueeze(1)
-                          for i in range(num_blocks)], dim=1)
+        if self.window_size == 1:
+            return x
+        else:
+            w = (self.window_size - 1) // 2
+            return torch.cat([x[:, np.sort(np.arange(i - w, i + w + 1) % num_blocks)].flatten(1).unsqueeze(1)
+                            for i in range(num_blocks)], dim=1)
 
     def detach_(self):
         """

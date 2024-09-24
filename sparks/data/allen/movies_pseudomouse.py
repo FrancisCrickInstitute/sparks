@@ -3,7 +3,6 @@ from typing import List
 
 import numpy as np
 import torch
-from allensdk.brain_observatory.ecephys.ecephys_project_cache import EcephysProjectCache
 
 from sparks.data.allen.utils import AllenMoviesNpxDataset, AllenMoviesCaDataset
 from sparks.data.allen.utils import (make_spikes_dict, sample_correct_unit_ids,
@@ -71,6 +70,7 @@ def make_npx_dataset(data_dir: os.path,
     correct_units_ids = sample_correct_unit_ids(units_ids, n_neurons, seed, correct_units_ids=correct_units_ids)
 
     if mode == 'reconstruction':
+        from allensdk.brain_observatory.ecephys.ecephys_project_cache import EcephysProjectCache
         manifest_path = os.path.join(data_dir, "manifest.json")
         cache = EcephysProjectCache.from_warehouse(manifest=manifest_path)
     else:
