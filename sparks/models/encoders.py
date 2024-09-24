@@ -116,7 +116,10 @@ class HebbianTransformerEncoder(torch.nn.Module):
                  device: torch.device = torch.device('cpu'),
                  sliding_window: bool = False,
                  block_size: int = 3,
-                 window_size: int = 10):
+                 window_size: int = 10,
+                 sliding_window_conventional: bool = False,
+                 block_size_conventional: int = 3,
+                 window_size_conventional: int = 10):
         """
         Initialize a Hebbian Transformer Encoder.
 
@@ -194,7 +197,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
 
         self.conventional_blocks = ModuleList()
         for _ in range(n_layers):
-            self.conventional_blocks.append(AttentionBlock(embed_dim, n_heads))
+            self.conventional_blocks.append(AttentionBlock(embed_dim, n_heads, sliding_window_conventional, block_size_conventional, window_size_conventional))
 
         self.fc_mu_per_sess = None
         self.fc_var_per_sess = None
