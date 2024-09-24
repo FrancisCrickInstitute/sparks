@@ -86,6 +86,8 @@ class HebbianAttentionLayer(torch.nn.Module):
             self.init_latent_weights(w_pre, w_post)
 
         if self.sliding:
+            w = (self.window_size - 1) // 2
+            self.roll_indices = np.concatenate([np.sort(np.arange((i - 1) * (w * self.block_size), (i + 2) * (w * self.block_size)) % len(self.neurons)) for i in range(len(self.neurons) // self.block_size)])
             self.v_proj = torch.nn.Linear(self.window_size * self.block_size, self.embed_dim)
         else:
             self.v_proj = torch.nn.Linear(self.n_total_neurons, self.embed_dim)
@@ -108,8 +110,9 @@ class HebbianAttentionLayer(torch.nn.Module):
 
         if self.sliding:
             pre_spikes = spikes[:, self.neurons].view(spikes.shape[0], -1, self.block_size, 1)  # [B, N/b, b, 1]
-            post_spikes = self.roll(spikes[:, self.neurons].view(spikes.shape[0], -1, self.block_size),
-                                    len(self.neurons) // self.block_size).unsqueeze(2)  # [B, N/b, 1, b*w]
+            post_spikes = self.roll(spikes[:, self.neurons])  # [B, N/b, 1, b*w]
+
+            assert post_spikes.shape == torch.Size([spikes.shape[0], spikes.shape[1] // self.block_size, 1, self.block_size * self.window_size])
         else:
             pre_spikes = spikes.unsqueeze(1)  # [B, N, 1]
             post_spikes = spikes[:, self.neurons].unsqueeze(2)  # [B, 1, N]
@@ -124,7 +127,6 @@ class HebbianAttentionLayer(torch.nn.Module):
 
         elif self.data_type == 'calcium':
             self.attention = self.attention + (pre_spikes - post_spikes).view(spikes.shape[0], len(self.neurons), -1)
-
 
         return self.v_proj(self.attention) / np.sqrt(self.n_total_neurons + self.embed_dim)
 
@@ -193,13 +195,11 @@ class HebbianAttentionLayer(torch.nn.Module):
         torch.nn.init.normal_(self.latent_post_weight, mean=np.log(w_post),
                               std=1 / np.sqrt(len(self.neurons) + self.n_total_neurons))
 
-    def roll(self, x, num_blocks):
+    def roll(self, x):
         if self.window_size == 1:
-            return x
+            return x.view(x.shape[0], x.shape[1] // self.block_size, 1, self.block_size)
         else:
-            w = (self.window_size - 1) // 2
-            return torch.cat([x[:, np.sort(np.arange(i - w, i + w + 1) % num_blocks)].flatten(1).unsqueeze(1)
-                            for i in range(num_blocks)], dim=1)
+            return x[:, self.roll_indices].view(x.shape[0], x.shape[1] // self.block_size, 1, self.block_size * self.window_size)
 
     def detach_(self):
         """
