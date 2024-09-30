@@ -4,6 +4,7 @@ import json
 import os
 import time
 from typing import List
+import random
 
 import numpy as np
 import torch
@@ -287,6 +288,28 @@ class MultiSessionDataset(torch.utils.data.Dataset):
     def __getitem__(self, i):
         return tuple(d[i] for d in self.datasets)
 
+
+class RandomCycler:
+    """
+    Randomly selects a dataloader and yields its next item.
+    Aware not to select a dataloader that has already been exhausted.
+    """
+
+    def __init__(self, loaders):
+        self.loaders = loaders
+        self.active_loaders = list(range(len(self.loaders)))
+
+    def __iter__(self):
+        while self.active_loaders:
+            loader_idx = random.choice(self.active_loaders)
+            try:
+                yield next(self.loader_idx)
+            except StopIteration:
+                self.active_loaders.remove(loader_idx)
+                self.__iter__()
+
+    def __len__(self):
+        return sum([len(loader) for loader in self.loaders])
 
 """
 =======================================================================================================================
