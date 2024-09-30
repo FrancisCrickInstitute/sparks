@@ -297,17 +297,18 @@ class RandomCycler:
 
     def __init__(self, loaders):
         self.loaders = loaders
+        self.iterators = [iter(loader) for loader in loaders]
         self.active_loaders = list(range(len(self.loaders)))
 
     def __iter__(self):
         while self.active_loaders:
             loader_idx = random.choice(self.active_loaders)
             try:
-                yield next(self.loader_idx)
+                yield loader_idx, next(self.iterators[loader_idx])
             except StopIteration:
                 self.active_loaders.remove(loader_idx)
                 self.__iter__()
-
+        
     def __len__(self):
         return sum([len(loader) for loader in self.loaders])
 
