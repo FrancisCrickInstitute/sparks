@@ -381,22 +381,22 @@ class HebbianTransformerEncoder(nn.Module):
             self.proj = nn.Sequential(nn.Conv1d(self.embed_dim, self.embed_dim // 2, kernel_size=3,
                                                 stride=2, padding=1, bias=False),
                                       nn.LayerNorm(self.embed_dim // 2),
-                                      nn.ReLU6(inplace=True),
+                                      nn.LeakyReLU(inplace=True),
                                       nn.Conv1d(self.embed_dim // 2,
                                                 2 * self.embed_dim, kernel_size=3,
                                                 stride=4, padding=1, bias=False),
                                       nn.LayerNorm(2 * self.embed_dim),
-                                      nn.ReLU6(inplace=True),
+                                      nn.LeakyReLU(inplace=True),
                                       nn.Conv1d(2 * self.embed_dim,
                                                 2 * self.embed_dim, kernel_size=3,
                                                 stride=4, padding=1, bias=False),
                                       nn.LayerNorm(2 * self.embed_dim),
-                                      nn.ReLU6(inplace=True),
+                                      nn.LeakyReLU(inplace=True),
                                       nn.Conv1d(2 * self.embed_dim,
                                                 2 * self.embed_dim, kernel_size=3,
                                                 stride=2, padding=1, bias=False),
                                       nn.LayerNorm(2 * self.embed_dim),
-                                      nn.ReLU6(inplace=True), nn.Flatten())
+                                      nn.LeakyReLU(inplace=True), nn.Flatten())
     
             self.norm_per_sess = ModuleList([nn.LayerNorm(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2)
                                              for n_neurons in n_neurons_per_sess])
