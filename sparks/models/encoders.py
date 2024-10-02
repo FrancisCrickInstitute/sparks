@@ -380,31 +380,30 @@ class HebbianTransformerEncoder(nn.Module):
         elif self.output_type == 'conv':
             self.proj = nn.Sequential(nn.Conv1d(self.embed_dim, self.embed_dim // 2, kernel_size=3,
                                                 stride=2, padding=1, bias=False),
-                                      nn.BatchNorm1d(self.embed_dim // 2),
+                                      nn.LayerNorm(self.embed_dim // 2),
                                       nn.ReLU6(inplace=True),
                                       nn.Conv1d(self.embed_dim // 2,
                                                 2 * self.embed_dim, kernel_size=3,
                                                 stride=4, padding=1, bias=False),
-                                      nn.BatchNorm1d(2 * self.embed_dim),
+                                      nn.LayerNorm(2 * self.embed_dim),
                                       nn.ReLU6(inplace=True),
                                       nn.Conv1d(2 * self.embed_dim,
                                                 2 * self.embed_dim, kernel_size=3,
                                                 stride=4, padding=1, bias=False),
-                                      nn.BatchNorm1d(2 * self.embed_dim),
+                                      nn.LayerNorm(2 * self.embed_dim),
                                       nn.ReLU6(inplace=True),
                                       nn.Conv1d(2 * self.embed_dim,
                                                 2 * self.embed_dim, kernel_size=3,
                                                 stride=2, padding=1, bias=False),
-                                      nn.BatchNorm1d(2 * self.embed_dim),
+                                      nn.LayerNorm(2 * self.embed_dim),
                                       nn.ReLU6(inplace=True), nn.Flatten())
-            
+    
             self.norm_per_sess = ModuleList([nn.LayerNorm(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2)
                                              for n_neurons in n_neurons_per_sess])
             self.fc_mu_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2,
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
             self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, 
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
-
         else:
             raise NotImplementedError
 
