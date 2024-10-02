@@ -57,6 +57,8 @@ def make_res_folder(name: str, path_to_res: str, args: argparse.Namespace):
 
     if torch.cuda.is_available():
         args.device = torch.device('cuda')
+    elif torch.backends.mps.is_available():
+        args.device = torch.device('mps:0')
     else:
         args.device = torch.device('cpu')
 

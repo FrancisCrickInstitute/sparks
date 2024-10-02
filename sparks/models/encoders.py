@@ -2,13 +2,14 @@ from typing import Any, Optional, Union, List, Tuple
 
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.nn import ModuleList
 
 from sparks.models.attention import MultiHeadedHebbianAttentionLayer
 from sparks.models.transformer import FeedForward, AttentionBlock
 
 
-class HebbianTransformerBlock(torch.nn.Module):
+class HebbianTransformerBlock(nn.Module):
     def __init__(self,
                  n_total_neurons: int,
                  embed_dim: int,
@@ -61,7 +62,7 @@ class HebbianTransformerBlock(torch.nn.Module):
                                                                 sliding=sliding,
                                                                 window_size=window_size,
                                                                 block_size=block_size)
-        self.o_proj = torch.nn.Linear(embed_dim, embed_dim)
+        self.o_proj = nn.Linear(embed_dim, embed_dim)
         self.ff = FeedForward(embed_dim)
         self.embed_dim = embed_dim
 
@@ -101,7 +102,7 @@ class HebbianTransformerBlock(torch.nn.Module):
         self.attention_layer.zero_()
 
 
-class HebbianTransformerEncoder(torch.nn.Module):
+class HebbianTransformerEncoder(nn.Module):
     def __init__(self,
                  n_neurons_per_sess: Union[int, List[int]],
                  embed_dim: int,
@@ -208,6 +209,7 @@ class HebbianTransformerEncoder(torch.nn.Module):
         for _ in range(n_layers):
             self.conventional_blocks.append(AttentionBlock(embed_dim, n_heads))
 
+        self.proj = None
         self.fc_mu_per_sess = None
         self.fc_var_per_sess = None
         self.norm_per_sess = None
@@ -238,6 +240,10 @@ class HebbianTransformerEncoder(torch.nn.Module):
         for block in self.conventional_blocks:
             x = block(x)
 
+        if self.output_type == 'conv':
+            x = x.transpose(2, 1)
+
+        x = self.proj(x)
         x = self.norm_per_sess[layer_idx](x)
         mu = self.fc_mu_per_sess[layer_idx](x)
         logvar = self.fc_var_per_sess[layer_idx](x)
@@ -325,13 +331,18 @@ class HebbianTransformerEncoder(torch.nn.Module):
         self.id_per_sess = np.concatenate((self.id_per_sess, np.array([layer_id])))
 
         if self.output_type == 'flatten':
-            self.norm_per_sess.append(torch.nn.LayerNorm(n_neurons * self.embed_dim).to(self.device))
-            self.fc_mu_per_sess.append(torch.nn.Linear(n_neurons * self.embed_dim, self.latent_dim).to(self.device))
-            self.fc_var_per_sess.append(torch.nn.Linear(n_neurons * self.embed_dim, self.latent_dim).to(self.device))
+            self.norm_per_sess.append(nn.LayerNorm(n_neurons * self.embed_dim).to(self.device))
+            self.fc_mu_per_sess.append(nn.Linear(n_neurons * self.embed_dim, self.latent_dim).to(self.device))
+            self.fc_var_per_sess.append(nn.Linear(n_neurons * self.embed_dim, self.latent_dim).to(self.device))
         elif self.output_type == 'mean':
-            self.norm_per_sess.append(torch.nn.LayerNorm(n_neurons))
-            self.fc_mu_per_sess.append(torch.nn.Linear(n_neurons, self.latent_dim))
-            self.fc_var_per_sess.append(torch.nn.Linear(n_neurons, self.latent_dim))
+            self.norm_per_sess.append(nn.LayerNorm(n_neurons))
+            self.fc_mu_per_sess.append(nn.Linear(n_neurons, self.latent_dim))
+            self.fc_var_per_sess.append(nn.Linear(n_neurons, self.latent_dim))
+        elif self.output_type == 'conv':
+            self.norm_per_sess.append(nn.LayerNorm(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2))
+            self.fc_mu_per_sess.append(nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, self.latent_dim))
+            self.fc_var_per_sess.append(nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, self.latent_dim))
+
 
     def init_weights(self, n_neurons_per_sess: List[int]) -> None:
         """
@@ -352,21 +363,48 @@ class HebbianTransformerEncoder(torch.nn.Module):
         """
 
         if self.output_type == 'mean':
-            self.conventional_blocks.append(torch.nn.Linear(self.embed_dim, 1))
-            self.conventional_blocks.append(torch.nn.Flatten())
-            self.norm_per_sess = ModuleList([torch.nn.LayerNorm(n_neurons) for n_neurons in n_neurons_per_sess])
-            self.fc_mu_per_sess = ModuleList([torch.nn.Linear(n_neurons, self.latent_dim)
+            self.proj = ModuleList([nn.Linear(self.embed_dim, 1), nn.Flatten()])
+            self.norm_per_sess = ModuleList([nn.LayerNorm(n_neurons) for n_neurons in n_neurons_per_sess])
+            self.fc_mu_per_sess = ModuleList([nn.Linear(n_neurons, self.latent_dim)
                                               for n_neurons in n_neurons_per_sess])
-            self.fc_var_per_sess = ModuleList([torch.nn.Linear(n_neurons, self.latent_dim)
+            self.fc_var_per_sess = ModuleList([nn.Linear(n_neurons, self.latent_dim)
                                                for n_neurons in n_neurons_per_sess])
         elif self.output_type == 'flatten':
-            self.conventional_blocks.append(torch.nn.Flatten())
-            self.norm_per_sess = ModuleList([torch.nn.LayerNorm(n_neurons * self.embed_dim)
+            self.proj = nn.Flatten()
+            self.norm_per_sess = ModuleList([nn.LayerNorm(n_neurons * self.embed_dim)
                                              for n_neurons in n_neurons_per_sess])
-            self.fc_mu_per_sess = ModuleList([torch.nn.Linear(n_neurons * self.embed_dim, self.latent_dim)
+            self.fc_mu_per_sess = ModuleList([nn.Linear(n_neurons * self.embed_dim, self.latent_dim)
                                               for n_neurons in n_neurons_per_sess])
-            self.fc_var_per_sess = ModuleList([torch.nn.Linear(n_neurons * self.embed_dim, self.latent_dim)
+            self.fc_var_per_sess = ModuleList([nn.Linear(n_neurons * self.embed_dim, self.latent_dim)
                                                for n_neurons in n_neurons_per_sess])
+        elif self.output_type == 'conv':
+            self.proj = nn.Sequential(nn.Conv1d(self.embed_dim, self.embed_dim // 2, kernel_size=3,
+                                                stride=2, padding=1, bias=False),
+                                      nn.BatchNorm1d(self.embed_dim // 2),
+                                      nn.ReLU6(inplace=True),
+                                      nn.Conv1d(self.embed_dim // 2,
+                                                2 * self.embed_dim, kernel_size=3,
+                                                stride=4, padding=1, bias=False),
+                                      nn.BatchNorm1d(2 * self.embed_dim),
+                                      nn.ReLU6(inplace=True),
+                                      nn.Conv1d(2 * self.embed_dim,
+                                                2 * self.embed_dim, kernel_size=3,
+                                                stride=4, padding=1, bias=False),
+                                      nn.BatchNorm1d(2 * self.embed_dim),
+                                      nn.ReLU6(inplace=True),
+                                      nn.Conv1d(2 * self.embed_dim,
+                                                2 * self.embed_dim, kernel_size=3,
+                                                stride=2, padding=1, bias=False),
+                                      nn.BatchNorm1d(2 * self.embed_dim),
+                                      nn.ReLU6(inplace=True), nn.Flatten())
+            
+            self.norm_per_sess = ModuleList([nn.LayerNorm(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2)
+                                             for n_neurons in n_neurons_per_sess])
+            self.fc_mu_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2,
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
+            self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, 
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
+
         else:
             raise NotImplementedError
 

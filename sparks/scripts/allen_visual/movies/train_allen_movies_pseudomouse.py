@@ -31,8 +31,10 @@ if __name__ == "__main__":
     parser.add_argument('--n_heads', type=int, default=1, help='Number of attention heads')
     parser.add_argument('--embed_dim', type=int, default=128, help='Size of attention embeddings')
     parser.add_argument('--n_layers', type=int, default=0, help='Number of conventional attention layers')
-    parser.add_argument('--dec_type', type=str, default='mlp', choices=['linear', 'mlp'],
-                        help='Type of decoder (one of linear or mlp)')
+    parser.add_argument('--dec_type', type=str, default='mlp', choices=['linear', 'mlp', 'deconv'],
+                        help='Type of decoder (one of linear, mlp or deconv)')
+    parser.add_argument('--output_type', type=str, default='flatten',
+                        choices=['flatten', 'mean', 'conv'], help='Output architecture for the decoder')
     parser.add_argument('--tau_p', type=int, default=6, help='Past window size')
     parser.add_argument('--tau_f', type=int, default=1, help='Future window size')
     parser.add_argument('--tau_s', type=float, default=0.5, help='STDP decay')
@@ -43,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='prediction',
                         choices=['prediction', 'reconstruction', 'unsupervised'],
                         help='Which type of task to perform')
-    parser.add_argument('--data_type', type=str, default='npx', choices=['npx', 'ca'],
+    parser.add_argument('--data_type', type=str, default='ephys', choices=['ephys', 'calcium'],
                         help='Whether to use neuropixels or calcium data')
     parser.add_argument('--n_neurons', type=int, default=50)
     parser.add_argument('--dt', type=float, default=0.006, help='Time sampling period')
@@ -76,6 +78,7 @@ if __name__ == "__main__":
                                                  dt_per_sess=args.dt,
                                                  n_layers=args.n_layers,
                                                  n_heads=args.n_heads,
+                                                 output_type=args.output_type,
                                                  w_pre=0.5).to(args.device)
 
     if args.mode == 'prediction':
