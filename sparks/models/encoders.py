@@ -240,8 +240,10 @@ class HebbianTransformerEncoder(nn.Module):
         for block in self.conventional_blocks:
             x = block(x)
 
-        if self.output_type == 'conv':
+        if self.output_type == 'conv1d':
             x = x.transpose(2, 1)
+        elif self.output_type == 'conv2d':
+            x = x.unsqueeze(1)
 
         x = self.proj(x)
         x = self.norm_per_sess[layer_idx](x)
@@ -338,10 +340,14 @@ class HebbianTransformerEncoder(nn.Module):
             self.norm_per_sess.append(nn.LayerNorm(n_neurons))
             self.fc_mu_per_sess.append(nn.Linear(n_neurons, self.latent_dim))
             self.fc_var_per_sess.append(nn.Linear(n_neurons, self.latent_dim))
-        elif self.output_type == 'conv':
+        elif self.output_type == 'conv1d':
             self.norm_per_sess.append(nn.LayerNorm(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2))
             self.fc_mu_per_sess.append(nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, self.latent_dim))
             self.fc_var_per_sess.append(nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, self.latent_dim))
+        elif self.output_type == 'conv2d':
+            self.norm_per_sess.append(nn.LayerNorm(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 32))
+            self.fc_mu_per_sess.append(nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 32, self.latent_dim))
+            self.fc_var_per_sess.append(nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 32, self.latent_dim))
 
 
     def init_weights(self, n_neurons_per_sess: List[int]) -> None:
@@ -377,7 +383,7 @@ class HebbianTransformerEncoder(nn.Module):
                                               for n_neurons in n_neurons_per_sess])
             self.fc_var_per_sess = ModuleList([nn.Linear(n_neurons * self.embed_dim, self.latent_dim)
                                                for n_neurons in n_neurons_per_sess])
-        elif self.output_type == 'conv':
+        elif self.output_type == 'conv1d':
             self.proj = nn.Sequential(nn.Conv1d(self.embed_dim, self.embed_dim // 2, kernel_size=3,
                                                 stride=2, padding=1, bias=False),
                                       nn.LeakyReLU(inplace=True),
@@ -400,6 +406,33 @@ class HebbianTransformerEncoder(nn.Module):
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
             self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, 
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
+        elif self.output_type == 'conv2d':
+            self.proj = nn.Sequential = nn.Sequential(nn.Conv2d(1, 2, kernel_size=3,
+                                               stride=2, padding=1, bias=False),
+                                                        nn.BatchNorm2d(2),
+                                                        nn.ReLU6(inplace=True),
+                                                        nn.Conv2d(2, 8, kernel_size=3,
+                                                                stride=4, padding=1, bias=False),
+                                                        nn.BatchNorm2d(8),
+                                                        nn.ReLU6(inplace=True),
+                                                        nn.Conv2d(8, 16, kernel_size=3,
+                                                                stride=4, padding=1, bias=False),
+                                                        nn.BatchNorm2d(16),
+                                                        nn.ReLU6(inplace=True),
+                                                        nn.Conv2d(16, 32, kernel_size=3,
+                                                                stride=2, padding=1, bias=False),
+                                                        nn.BatchNorm2d(32),
+                                                        nn.ReLU6(inplace=True),
+                                                        nn.Flatten()
+                                                        )
+            self.norm_per_sess = ModuleList([nn.LayerNorm(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 32)
+                                    for n_neurons in n_neurons_per_sess])
+            self.fc_mu_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 32,
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
+            self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 32, 
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
+
+
         else:
             raise NotImplementedError
 
