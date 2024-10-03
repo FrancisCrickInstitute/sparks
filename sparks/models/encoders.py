@@ -7,7 +7,7 @@ from torch.nn import ModuleList
 
 from sparks.models.attention import MultiHeadedHebbianAttentionLayer
 from sparks.models.transformer import FeedForward, AttentionBlock
-
+from sparks.models.decoders import Conv2dBlock
 
 class HebbianTransformerBlock(nn.Module):
     def __init__(self,
@@ -407,8 +407,8 @@ class HebbianTransformerEncoder(nn.Module):
             self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * self.embed_dim * 2, 
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
         elif self.output_type == 'conv2d':
-            self.proj = nn.Sequential = nn.Sequential(nn.Conv2d(1, 2, kernel_size=3,
-                                               stride=2, padding=1, bias=False),
+            self.proj = nn.Sequential(nn.Conv2d(1, 2, kernel_size=3,
+                                                stride=2, padding=1, bias=False),
                                                         nn.BatchNorm2d(2),
                                                         nn.ReLU6(inplace=True),
                                                         nn.Conv2d(2, 8, kernel_size=3,
@@ -431,7 +431,34 @@ class HebbianTransformerEncoder(nn.Module):
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
             self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 32, 
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
-
+        elif self.output_type == 'conv2d2':
+            self.proj = nn.Sequential(Conv2dBlock(1, 32, 2),
+                                      Conv2dBlock(32, 16, 1),
+                                    Conv2dBlock(16, 24, 2),
+                                    Conv2dBlock(24, 24, 1),
+                                    Conv2dBlock(24, 32, 2),
+                                    Conv2dBlock(32, 32, 1),
+                                    Conv2dBlock(32, 32, 1),
+                                    Conv2dBlock(32, 64, 2),
+                                    Conv2dBlock(64, 64, 1),
+                                    Conv2dBlock(64, 64, 1),
+                                    Conv2dBlock(64, 64, 2),
+                                    Conv2dBlock(64, 96, 1),
+                                    Conv2dBlock(96, 96, 1),
+                                    Conv2dBlock(96, 96, 1),
+                                    Conv2dBlock(96, 160, 2),
+                                    Conv2dBlock(160, 160, 1),
+                                    Conv2dBlock(160, 160, 1),
+                                    Conv2dBlock(160, 320, 1),
+                                    nn.Flatten()
+                                    )
+            
+            self.norm_per_sess = ModuleList([nn.LayerNorm(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 320)
+                        for n_neurons in n_neurons_per_sess])
+            self.fc_mu_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 320,
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
+            self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 320,
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
 
         else:
             raise NotImplementedError
