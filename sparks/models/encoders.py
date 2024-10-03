@@ -242,7 +242,7 @@ class HebbianTransformerEncoder(nn.Module):
 
         if self.output_type == 'conv1d':
             x = x.transpose(2, 1)
-        elif (self.output_type == 'conv2d') or (self.output_type == 'conv2d2'):
+        elif (self.output_type == 'conv2d') or (self.output_type == 'conv2d2') or (self.output_type == 'conv2d3'):
             x = x.unsqueeze(1)
 
         x = self.proj(x)
@@ -459,6 +459,36 @@ class HebbianTransformerEncoder(nn.Module):
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
             self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 320,
                                                          self.latent_dim) for n_neurons in n_neurons_per_sess])
+        elif self.output_type == 'conv2d3':
+            self.proj = nn.Sequential(nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1, bias=False),
+                                    nn.BatchNorm2d(32),
+                                    nn.ReLU6(inplace=True),
+                                    InvertedResidualBlock(32, 16, 1, 1),
+                                    InvertedResidualBlock(16, 24, 6, 2),
+                                    InvertedResidualBlock(24, 24, 6, 1),
+                                    InvertedResidualBlock(24, 32, 6, 2),
+                                    InvertedResidualBlock(32, 32, 6, 1),
+                                    InvertedResidualBlock(32, 32, 6, 1),
+                                    InvertedResidualBlock(32, 64, 6, 2),
+                                    InvertedResidualBlock(64, 64, 6, 1),
+                                    InvertedResidualBlock(64, 64, 6, 2),
+                                    InvertedResidualBlock(64, 64, 6, 1),
+                                    InvertedResidualBlock(64, 96, 6, 1),
+                                    InvertedResidualBlock(96, 96, 6, 1),
+                                    InvertedResidualBlock(96, 96, 6, 1),
+                                    InvertedResidualBlock(96, 160, 6, 2),
+                                    InvertedResidualBlock(160, 160, 6, 1),
+                                    InvertedResidualBlock(160, 160, 6, 1),
+                                    InvertedResidualBlock(160, 320, 6, 1),
+                                    nn.Flatten())
+            
+            self.norm_per_sess = ModuleList([nn.LayerNorm(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 320)
+                        for n_neurons in n_neurons_per_sess])
+            self.fc_mu_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 320,
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
+            self.fc_var_per_sess = ModuleList([nn.Linear(int(np.ceil(n_neurons / 64)) * int(np.ceil(self.embed_dim / 64)) * 320,
+                                                         self.latent_dim) for n_neurons in n_neurons_per_sess])
+
 
         else:
             raise NotImplementedError

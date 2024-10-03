@@ -34,7 +34,8 @@ if __name__ == "__main__":
     parser.add_argument('--dec_type', type=str, default='mlp', choices=['linear', 'mlp', 'deconv'],
                         help='Type of decoder (one of linear, mlp or deconv)')
     parser.add_argument('--output_type', type=str, default='flatten',
-                        choices=['flatten', 'mean', 'conv1d', 'conv2d'], help='Output architecture for the decoder')
+                        choices=['flatten', 'mean', 'conv1d', 'conv2d', 'conv2d2', 'conv2d3'],
+                          help='Output architecture for the decoder')
     parser.add_argument('--tau_p', type=int, default=6, help='Past window size')
     parser.add_argument('--tau_f', type=int, default=1, help='Future window size')
     parser.add_argument('--tau_s', type=float, default=0.5, help='STDP decay')
