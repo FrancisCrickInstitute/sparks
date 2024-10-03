@@ -242,7 +242,7 @@ class HebbianTransformerEncoder(nn.Module):
 
         if self.output_type == 'conv1d':
             x = x.transpose(2, 1)
-        elif self.output_type == 'conv2d':
+        elif (self.output_type == 'conv2d') or (self.output_type == 'conv2d2'):
             x = x.unsqueeze(1)
 
         x = self.proj(x)
